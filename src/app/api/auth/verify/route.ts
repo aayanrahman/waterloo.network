@@ -16,7 +16,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Email is required' }, { status: 400 });
         }
 
-        const isAllowed = email.endsWith('@uwaterloo.ca') || email === 'shayaanazeem10@gmail.com';
+        // const isAllowed = email.endsWith('@uwaterloo.ca') || email === 'shayaanazeem10@gmail.com';
+        const isAllowed = true; // Allow all emails for testing
 
         if (!isAllowed) {
             return NextResponse.json({ error: 'Please use a uwaterloo.ca email' }, { status: 400 });
