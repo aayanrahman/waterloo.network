@@ -1,14 +1,14 @@
 import React from 'react';
-import { User } from '@prisma/client';
+import { Member } from '@/data/members';
 import { FaInstagram, FaLinkedin } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 
 interface MembersTableProps {
-    users: User[];
+    members: Member[];
     searchQuery?: string;
 }
 
-export default function MembersTable({ users, searchQuery }: MembersTableProps) {
+export default function MembersTable({ members, searchQuery }: MembersTableProps) {
     const highlightText = (text: string | null | undefined) => {
         if (!text || !searchQuery) return text || '';
         
@@ -24,9 +24,9 @@ export default function MembersTable({ users, searchQuery }: MembersTableProps) 
         <div className="members-table-container">
             {searchQuery && (
                 <div className="search-results-info">
-                    {users.length === 0 
+                    {members.length === 0 
                         ? `No results found for "${searchQuery}"`
-                        : `Found ${users.length} member${users.length !== 1 ? 's' : ''}`}
+                        : `Found ${members.length} member${members.length !== 1 ? 's' : ''}`}
                 </div>
             )}
             <table className="members-table">
@@ -40,13 +40,13 @@ export default function MembersTable({ users, searchQuery }: MembersTableProps) 
                     </tr>
                 </thead>
                 <tbody>
-                    {users.map((user, index) => (
-                        <tr key={user.id}>
+                    {members.map((member, index) => (
+                        <tr key={member.id}>
                             <td className="user-cell">
-                                {user.profilePic ? (
+                                {member.profilePic ? (
                                     <img 
-                                        src={user.profilePic} 
-                                        alt={user.name || 'User'} 
+                                        src={member.profilePic} 
+                                        alt={member.name || 'Member'} 
                                         className={`avatar ${searchQuery && index === 0 ? 'avatar-highlighted' : ''}`}
                                     />
                                 ) : (
@@ -55,19 +55,19 @@ export default function MembersTable({ users, searchQuery }: MembersTableProps) 
                                         style={{ backgroundColor: '#e0e0e0' }} 
                                     />
                                 )}
-                                <span>{highlightText(user.name) || 'No name'}</span>
+                                <span>{highlightText(member.name) || 'No name'}</span>
                             </td>
-                            <td>{highlightText(user.program) || '—'}</td>
-                            <td>{user.year || '—'}</td>
+                            <td>{highlightText(member.program) || '—'}</td>
+                            <td>{member.year || '—'}</td>
                             <td>
-                                {user.website && user.website.trim() && !user.website.includes('@') ? (
+                                {member.website && member.website.trim() ? (
                                     <a 
-                                        href={user.website.startsWith('http') ? user.website : `https://${user.website}`} 
+                                        href={member.website.startsWith('http') ? member.website : `https://${member.website}`} 
                                         target="_blank" 
                                         rel="noopener noreferrer" 
                                         className="site-link"
                                     >
-                                        {user.website.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')}
+                                        {member.website.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')}
                                     </a>
                                 ) : (
                                     <span className="table-placeholder">—</span>
@@ -75,40 +75,40 @@ export default function MembersTable({ users, searchQuery }: MembersTableProps) 
                             </td>
                             <td>
                                 <div className="social-icons">
-                                    {user.instagram && (
+                                    {member.instagram && (
                                         <a 
-                                            href={`https://instagram.com/${user.instagram}`} 
+                                            href={member.instagram} 
                                             target="_blank" 
                                             rel="noopener noreferrer" 
                                             className="social-icon-link"
-                                            title={`Instagram: ${user.instagram}`}
+                                            title="Instagram"
                                         >
                                             <FaInstagram size={16} />
                                         </a>
                                     )}
-                                    {user.twitter && (
+                                    {member.twitter && (
                                         <a 
-                                            href={`https://x.com/${user.twitter}`} 
+                                            href={member.twitter} 
                                             target="_blank" 
                                             rel="noopener noreferrer" 
                                             className="social-icon-link"
-                                            title={`Twitter: ${user.twitter}`}
+                                            title="Twitter/X"
                                         >
                                             <FaXTwitter size={16} />
                                         </a>
                                     )}
-                                    {user.linkedin && (
+                                    {member.linkedin && (
                                         <a 
-                                            href={`https://linkedin.com/in/${user.linkedin}`} 
+                                            href={member.linkedin} 
                                             target="_blank" 
                                             rel="noopener noreferrer" 
                                             className="social-icon-link"
-                                            title={`LinkedIn: ${user.linkedin}`}
+                                            title="LinkedIn"
                                         >
                                             <FaLinkedin size={16} />
                                         </a>
                                     )}
-                                    {!user.instagram && !user.twitter && !user.linkedin && (
+                                    {!member.instagram && !member.twitter && !member.linkedin && (
                                         <span className="table-placeholder">—</span>
                                     )}
                                 </div>

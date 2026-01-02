@@ -1,25 +1,25 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { User, Connection } from '@prisma/client';
+import { Member, Connection } from '@/data/members';
 
 interface NetworkGraphProps {
-    users: User[];
+    members: Member[];
     connections: Connection[];
-    highlightedUserIds?: string[];
+    highlightedMemberIds?: string[];
     searchQuery?: string;
 }
 
 interface Node {
     id: string;
     name: string | null;
-    profilePic: string | null;
+    profilePic: string | undefined;
     website: string | null;
     x: number;
     y: number;
 }
 
-export default function NetworkGraph({ users, connections, highlightedUserIds = [], searchQuery = '' }: NetworkGraphProps) {
+export default function NetworkGraph({ members, connections, highlightedMemberIds = [], searchQuery = '' }: NetworkGraphProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<SVGSVGElement | null>(null);
     const nodesRef = useRef<Node[]>([]);
@@ -68,8 +68,8 @@ export default function NetworkGraph({ users, connections, highlightedUserIds = 
             }
         };
 
-        if (searchQuery && highlightedUserIds.length > 0) {
-            const targetNode = nodesRef.current.find(n => highlightedUserIds.includes(n.id));
+        if (searchQuery && highlightedMemberIds.length > 0) {
+            const targetNode = nodesRef.current.find(n => highlightedMemberIds.includes(n.id));
             
             if (targetNode) {
                 const newZoom = 2.5;
@@ -101,7 +101,7 @@ export default function NetworkGraph({ users, connections, highlightedUserIds = 
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [searchQuery, highlightedUserIds]);
+    }, [searchQuery, highlightedMemberIds]);
 
     const updateVisuals = () => {
         const svg = svgRef.current;
@@ -148,7 +148,7 @@ export default function NetworkGraph({ users, connections, highlightedUserIds = 
                 
                 const img = nodeDiv.querySelector('img');
                 if (img) {
-                    const isHighlighted = highlightedUserIds.length === 0 || highlightedUserIds.includes(node.id);
+                    const isHighlighted = highlightedMemberIds.length === 0 || highlightedMemberIds.includes(node.id);
                     if (searchQuery && isHighlighted) {
                         img.style.filter = 'grayscale(0%)';
                     } else if (searchQuery && !isHighlighted) {
@@ -164,7 +164,7 @@ export default function NetworkGraph({ users, connections, highlightedUserIds = 
     };
 
     useEffect(() => {
-        if (!containerRef.current || users.length === 0) return;
+        if (!containerRef.current || members.length === 0) return;
 
         const container = containerRef.current;
         const width = container.clientWidth;
@@ -174,15 +174,15 @@ export default function NetworkGraph({ users, connections, highlightedUserIds = 
         nodeElementsRef.current.clear();
 
         const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-        nodesRef.current = users.map((user, i) => {
-            const radius = Math.sqrt(i + 0.5) * (Math.min(width, height) / (2.5 * Math.sqrt(users.length)));
+        nodesRef.current = members.map((member, i) => {
+            const radius = Math.sqrt(i + 0.5) * (Math.min(width, height) / (2.5 * Math.sqrt(members.length)));
             const angle = i * goldenAngle;
 
             return {
-        id: user.id,
-        name: user.name,
-                profilePic: user.profilePic,
-                website: user.website,
+                id: member.id,
+                name: member.name,
+                profilePic: member.profilePic,
+                website: member.website,
                 x: width / 2 + radius * Math.cos(angle),
                 y: height / 2 + radius * Math.sin(angle),
             };
@@ -207,7 +207,7 @@ export default function NetworkGraph({ users, connections, highlightedUserIds = 
             nodeDiv.style.transition = 'left 0.5s ease, top 0.5s ease, transform 0.5s ease';
 
             const img = document.createElement('img');
-            img.src = node.profilePic || '/default-avatar.png';
+            img.src = node.profilePic || '/icon.svg';
             img.style.width = '32px';
             img.style.height = '32px';
             img.style.borderRadius = '50%';
@@ -245,7 +245,7 @@ export default function NetworkGraph({ users, connections, highlightedUserIds = 
             });
 
             nodeDiv.addEventListener('mouseleave', () => {
-                const isHighlighted = highlightedUserIds.length === 0 || highlightedUserIds.includes(node.id);
+                const isHighlighted = highlightedMemberIds.length === 0 || highlightedMemberIds.includes(node.id);
                 if (searchQuery && isHighlighted) {
                     img.style.filter = 'grayscale(0%)';
                     img.style.opacity = '1';
@@ -390,7 +390,7 @@ export default function NetworkGraph({ users, connections, highlightedUserIds = 
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [users, connections, isDark, zoomLevel, panOffset]);
+    }, [members, connections, isDark, zoomLevel, panOffset]);
 
     return (
         <div 
@@ -403,3 +403,4 @@ export default function NetworkGraph({ users, connections, highlightedUserIds = 
         />
     );
 }
+

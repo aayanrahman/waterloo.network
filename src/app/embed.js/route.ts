@@ -3,30 +3,22 @@ import { NextResponse } from 'next/server';
 export async function GET() {
     const embedScript = `
 (function() {
-    const scriptTag = document.currentScript || document.querySelector('script[data-user]');
+    const scriptTag = document.currentScript || document.querySelector('script[data-webring]');
     if (!scriptTag) return;
     
-    const userId = scriptTag.getAttribute('data-user');
-    if (!userId) return;
-    
+    const userId = scriptTag.getAttribute('data-user') || '';
     const embedColor = scriptTag.getAttribute('data-color') || 'black';
     const embedArrow = scriptTag.getAttribute('data-arrow') || 'arrow';
     const embedCustomColor = scriptTag.getAttribute('data-custom-color') || '';
     
-    const baseUrl = '${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}';
+    const baseUrl = '${process.env.NEXT_PUBLIC_BASE_URL || 'https://uwaterloo.network'}';
     
-    fetch(baseUrl + '/api/webring/' + userId)
+    // Fetch connections for this user (or all members if no user specified)
+    const apiUrl = userId ? baseUrl + '/api/webring?user=' + userId : baseUrl + '/api/webring';
+    
+    fetch(apiUrl)
         .then(res => res.json())
         .then(data => {
-            if (!data.friends || data.friends.length === 0) {
-                console.warn('Webring: No friends configured');
-                return;
-            }
-            
-            data.embedColor = embedColor;
-            data.embedArrow = embedArrow;
-            data.embedCustomColor = embedCustomColor;
-            
             const container = document.createElement('div');
             container.id = 'uwaterloo-webring';
             container.style.cssText = \`
@@ -41,12 +33,11 @@ export async function GET() {
                 transition: all 0.3s ease;
             \`;
             
-            let currentIndex = 0;
+            const arrowColor = getArrowColor(embedColor, embedCustomColor);
             
-            const arrowColor = getArrowColor(data);
-            
+            // Left arrow - navigate to previous connection
             const leftArrow = document.createElement('button');
-            leftArrow.innerHTML = getArrowIcon('left', data.embedArrow);
+            leftArrow.innerHTML = getArrowIcon('left', embedArrow);
             leftArrow.style.cssText = \`
                 border: none;
                 background: transparent;
@@ -60,41 +51,28 @@ export async function GET() {
                 line-height: 1;
                 color: \${arrowColor};
             \`;
-            leftArrow.onmouseover = () => {
-                leftArrow.style.opacity = '0.7';
-            };
-            leftArrow.onmouseout = () => {
-                leftArrow.style.opacity = '1';
-            };
-            leftArrow.onclick = () => {
-                currentIndex = (currentIndex - 1 + data.friends.length) % data.friends.length;
-                updateLink();
-            };
+            leftArrow.onmouseover = () => leftArrow.style.opacity = '0.7';
+            leftArrow.onmouseout = () => leftArrow.style.opacity = '1';
             
+            // Center icon - links to the webring homepage
             const centerLink = document.createElement('a');
-            centerLink.href = data.friends[0].website;
+            centerLink.href = baseUrl;
             centerLink.target = '_blank';
             centerLink.rel = 'noopener noreferrer';
+            centerLink.title = 'Visit uwaterloo.network';
             centerLink.style.cssText = \`
                 display: flex;
                 transition: transform 0.2s;
             \`;
-            centerLink.onmouseover = () => {
-                centerLink.style.transform = 'scale(1.1)';
-            };
-            centerLink.onmouseout = () => {
-                centerLink.style.transform = 'scale(1)';
-            };
+            centerLink.onmouseover = () => centerLink.style.transform = 'scale(1.1)';
+            centerLink.onmouseout = () => centerLink.style.transform = 'scale(1)';
             
-            const icon = document.createElement('img');
-            let iconSrc = baseUrl + '/icon.svg';
-            
-            if (data.embedColor === 'custom' && data.embedCustomColor) {
+            if (embedColor === 'custom' && embedCustomColor) {
                 const iconWrapper = document.createElement('div');
                 iconWrapper.style.cssText = \`
                     width: 56px;
                     height: 56px;
-                    background-color: \${data.embedCustomColor};
+                    background-color: \${embedCustomColor};
                     mask: url(\${baseUrl}/icon.svg) center/contain no-repeat;
                     -webkit-mask: url(\${baseUrl}/icon.svg) center/contain no-repeat;
                 \`;
@@ -106,10 +84,11 @@ export async function GET() {
                     'yellow': '/iconyellow.svg',
                     'white': '/iconwhite.svg'
                 };
-                iconSrc = baseUrl + (colorMap[data.embedColor] || colorMap['black']);
+                const iconSrc = baseUrl + (colorMap[embedColor] || colorMap['black']);
                 
+                const icon = document.createElement('img');
                 icon.src = iconSrc;
-                icon.alt = 'Waterloo Webring';
+                icon.alt = 'UWaterloo Webring';
                 icon.style.cssText = \`
                     width: 56px;
                     height: 56px;
@@ -118,8 +97,9 @@ export async function GET() {
                 centerLink.appendChild(icon);
             }
             
+            // Right arrow - navigate to next connection
             const rightArrow = document.createElement('button');
-            rightArrow.innerHTML = getArrowIcon('right', data.embedArrow);
+            rightArrow.innerHTML = getArrowIcon('right', embedArrow);
             rightArrow.style.cssText = \`
                 border: none;
                 background: transparent;
@@ -133,20 +113,32 @@ export async function GET() {
                 line-height: 1;
                 color: \${arrowColor};
             \`;
-            rightArrow.onmouseover = () => {
-                rightArrow.style.opacity = '0.7';
-            };
-            rightArrow.onmouseout = () => {
-                rightArrow.style.opacity = '1';
-            };
-            rightArrow.onclick = () => {
-                currentIndex = (currentIndex + 1) % data.friends.length;
-                updateLink();
-            };
+            rightArrow.onmouseover = () => rightArrow.style.opacity = '0.7';
+            rightArrow.onmouseout = () => rightArrow.style.opacity = '1';
             
-            function updateLink() {
-                centerLink.href = data.friends[currentIndex].website;
-                centerLink.title = 'Visit ' + (data.friends[currentIndex].name || 'friend');
+            // If there are members to navigate through
+            if (data.members && data.members.length > 0) {
+                let currentIndex = Math.floor(Math.random() * data.members.length);
+                
+                leftArrow.onclick = () => {
+                    currentIndex = (currentIndex - 1 + data.members.length) % data.members.length;
+                    navigateToMember(data.members[currentIndex]);
+                };
+                
+                rightArrow.onclick = () => {
+                    currentIndex = (currentIndex + 1) % data.members.length;
+                    navigateToMember(data.members[currentIndex]);
+                };
+                
+                function navigateToMember(member) {
+                    window.open(member.website, '_blank');
+                }
+            } else {
+                // No connections - hide arrows or make them link to webring
+                leftArrow.style.opacity = '0.3';
+                leftArrow.style.cursor = 'default';
+                rightArrow.style.opacity = '0.3';
+                rightArrow.style.cursor = 'default';
             }
             
             function getArrowIcon(direction, style) {
@@ -158,9 +150,9 @@ export async function GET() {
                 return arrows[style] || arrows.arrow;
             }
             
-            function getArrowColor(data) {
-                if (data.embedColor === 'custom' && data.embedCustomColor) {
-                    return data.embedCustomColor;
+            function getArrowColor(color, customColor) {
+                if (color === 'custom' && customColor) {
+                    return customColor;
                 }
                 const colorMap = {
                     'black': '#000000',
@@ -168,7 +160,7 @@ export async function GET() {
                     'yellow': '#ffd54f',
                     'white': '#ffffff'
                 };
-                return colorMap[data.embedColor] || '#000000';
+                return colorMap[color] || '#000000';
             }
             
             container.appendChild(leftArrow);
@@ -176,8 +168,6 @@ export async function GET() {
             container.appendChild(rightArrow);
             
             scriptTag.parentNode.insertBefore(container, scriptTag.nextSibling);
-            
-            updateLink();
         })
         .catch(err => {
             console.error('Webring error:', err);
@@ -192,4 +182,3 @@ export async function GET() {
         },
     });
 }
-

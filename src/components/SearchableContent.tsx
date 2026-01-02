@@ -1,34 +1,32 @@
 'use client';
 
 import React, { useState } from 'react';
-import { User, Connection } from '@prisma/client';
+import { Member, Connection } from '@/data/members';
 import MembersTable from './MembersTable';
 import NetworkGraph from './NetworkGraph';
-import AuthButton from './AuthButton';
 import AsciiBackground from './AsciiBackground';
-import { Search } from 'lucide-react';
-import Link from 'next/link';
+import { Search, Github } from 'lucide-react';
 
 interface SearchableContentProps {
-    users: User[];
+    members: Member[];
     connections: Connection[];
 }
 
-export default function SearchableContent({ users, connections }: SearchableContentProps) {
+export default function SearchableContent({ members, connections }: SearchableContentProps) {
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredUsers = searchQuery
-        ? users.filter(user =>
-            user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.program?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredMembers = searchQuery
+        ? members.filter(member =>
+            member.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            member.program?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            member.website?.toLowerCase().includes(searchQuery.toLowerCase())
         )
-        : users;
+        : members;
 
-    const filteredUserIds = new Set(filteredUsers.map(u => u.id));
+    const filteredMemberIds = new Set(filteredMembers.map(m => m.id));
     const filteredConnections = searchQuery
         ? connections.filter(conn =>
-            filteredUserIds.has(conn.fromId) && filteredUserIds.has(conn.toId)
+            filteredMemberIds.has(conn.fromId) && filteredMemberIds.has(conn.toId)
         )
         : connections;
 
@@ -39,7 +37,16 @@ export default function SearchableContent({ users, connections }: SearchableCont
                 <div className="header-section">
                     <div className="title-row">
                         <h1 className="title">uwaterloo.network</h1>
-                        <AuthButton />
+                        <a 
+                            href="https://github.com/shayaanazeem/webring"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="github-link"
+                            title="Add yourself via Pull Request"
+                        >
+                            <Github size={20} />
+                            <span>Join via PR</span>
+                        </a>
                     </div>
                     <div className="description">
                         <p>welcome to the official webring for university of waterloo students.</p>
@@ -50,13 +57,20 @@ export default function SearchableContent({ users, connections }: SearchableCont
                             who actually make this place special.
                         </p>
                         <p>
-                            If your are or ever were a uwaterloo student your welcome to <Link href="/join" className="join-link">join</Link> ;)
+                            want to join? <a 
+                                href="https://github.com/shayaanazeem/webring#how-to-join" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="join-link"
+                            >
+                                submit a pull request
+                            </a> to add yourself to the ring!
                         </p>
                     </div>
                 </div>
 
                 <div className="table-section">
-                    <MembersTable users={filteredUsers} searchQuery={searchQuery} />
+                    <MembersTable members={filteredMembers} searchQuery={searchQuery} />
                 </div>
             </div>
 
@@ -80,13 +94,12 @@ export default function SearchableContent({ users, connections }: SearchableCont
                     )}
                 </div>
                 <NetworkGraph 
-                    users={users} 
+                    members={members} 
                     connections={connections} 
-                    highlightedUserIds={filteredUsers.map(u => u.id)}
+                    highlightedMemberIds={filteredMembers.map(m => m.id)}
                     searchQuery={searchQuery}
                 />
             </div>
         </main>
     );
 }
-
